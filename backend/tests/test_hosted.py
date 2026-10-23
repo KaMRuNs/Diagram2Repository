@@ -11,7 +11,7 @@ from app.schemas import ArchitectureSummary
 
 
 def _settings(**kw) -> Settings:
-    return Settings(llm_provider="hosted", hosted_api_key="test-key", **kw)
+    return Settings(_env_file=None, llm_provider="hosted", hosted_api_key="test-key", **kw)
 
 
 def test_message_translation_images_and_tool_ids():
@@ -93,7 +93,32 @@ async def test_errors_are_llm_errors():
 
 
 def test_factory_and_missing_key():
-    assert make_client(Settings()).local is True
+    assert make_client(Settings(_env_file=None)).local is True
     assert make_client(_settings()).local is False
     with pytest.raises(LLMError, match="HOSTED_API_KEY"):
-        HostedClient(Settings(llm_provider="hosted", hosted_api_key=""))
+        HostedClient(Settings(_env_file=None, llm_provider="hosted", hosted_api_key=""))
+
+
+async def test_fallback_retries_on_second_provider_with_mapped_model():
+    calls: list[tuple[str, str]] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        body = json.loads(request.content)
+        calls.append((request.url.host, body["model"]))
+        if request.url.host == "primary.test":
+            return httpx.Response(503, json={"error": "busy"})
+        return httpx.Response(200, json={"choices": [{"message": {"content": "hi"}}]})
+
+    s = _settings(
+        hosted_base_url="https://primary.test/v1",
+        fallback_base_url="https://backup.test/v1",
+        fallback_api_key="groq-key",
+        agent_model="big",
+        fallback_agent_model="small",
+    )
+    client = make_client(s)
+    for c in (client.primary, client.fallback):
+        c._transport = httpx.MockTransport(handler)
+    reply = await client.chat("big", [{"role": "user", "content": "x"}])
+    assert reply["content"] == "hi"
+    assert calls == [("primary.test", "big"), ("backup.test", "small")]

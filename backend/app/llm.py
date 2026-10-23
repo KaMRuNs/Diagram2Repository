@@ -326,12 +326,20 @@ class HostedClient(LLMClient):
 
     local = False
 
-    def __init__(self, settings: Settings | None = None, transport: httpx.AsyncBaseTransport | None = None):
+    def __init__(
+        self,
+        settings: Settings | None = None,
+        transport: httpx.AsyncBaseTransport | None = None,
+        *,
+        base_url: str | None = None,
+        api_key: str | None = None,
+    ):
         s = settings or get_settings()
-        super().__init__(s.hosted_base_url, s, transport)
-        if not s.hosted_api_key:
+        super().__init__(base_url or s.hosted_base_url, s, transport)
+        key = s.hosted_api_key if api_key is None else api_key
+        if not key:
             raise LLMError("LLM_PROVIDER=hosted needs HOSTED_API_KEY")
-        self._headers = {"Authorization": f"Bearer {s.hosted_api_key}"}
+        self._headers = {"Authorization": f"Bearer {key}"}
 
     async def chat(
         self,
@@ -382,6 +390,42 @@ class HostedClient(LLMClient):
             return [m["id"] for m in resp.json().get("data", [])]
 
 
+class FallbackClient(LLMClient):
+    """Tries the primary client; on LLMError retries the same call on a second provider.
+
+    Each stage's model is mapped to that provider's equivalent (vision/ocr/agent).
+    """
+
+    def __init__(self, primary: LLMClient, fallback: LLMClient, models: dict[str, str]):
+        super().__init__(primary.base, primary.settings, None)
+        self.primary, self.fallback, self.models = primary, fallback, models
+        self.local = primary.local
+
+    async def chat(self, model: str, messages: list[dict], **kwargs: Any) -> dict:
+        try:
+            return await self.primary.chat(model, messages, **kwargs)
+        except LLMError as exc:
+            try:
+                return await self.fallback.chat(self.models.get(model, model), messages, **kwargs)
+            except LLMError as exc2:
+                raise LLMError(f"{exc} | fallback: {exc2}") from exc2
+
+    async def unload(self, model: str) -> None:
+        await self.primary.unload(model)
+
+    async def list_models(self) -> list[str]:
+        return await self.primary.list_models()
+
+
 def make_client(settings: Settings | None = None) -> LLMClient:
     s = settings or get_settings()
-    return HostedClient(s) if s.llm_provider == "hosted" else OllamaClient(s)
+    primary: LLMClient = HostedClient(s) if s.llm_provider == "hosted" else OllamaClient(s)
+    if not s.fallback_api_key:
+        return primary
+    fallback = HostedClient(s, base_url=s.fallback_base_url, api_key=s.fallback_api_key)
+    models = {
+        s.vision_model: s.fallback_vision_model,
+        s.ocr_model: s.fallback_ocr_model,
+        s.agent_model: s.fallback_agent_model,
+    }
+    return FallbackClient(primary, fallback, models)

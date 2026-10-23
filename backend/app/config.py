@@ -2,6 +2,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
+from pydantic import AliasChoices, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 ROOT_DIR = Path(__file__).resolve().parents[2]
@@ -15,6 +16,14 @@ class Settings(BaseSettings):
     llm_provider: Literal["ollama", "hosted"] = "ollama"
     hosted_base_url: str = "https://inference.do-ai.run/v1"
     hosted_api_key: str = ""
+
+    # Optional second OpenAI-compatible provider (Groq by default), tried when a hosted call fails
+    # (rate limit, 503, timeout). Enabled by setting FALLBACK_API_KEY (or GROQ_API_KEY).
+    fallback_base_url: str = "https://api.groq.com/openai/v1"
+    fallback_api_key: str = Field("", validation_alias=AliasChoices("fallback_api_key", "groq_api_key"))
+    fallback_vision_model: str = "qwen/qwen3.8-27b"
+    fallback_ocr_model: str = "qwen/qwen3.8-27b"
+    fallback_agent_model: str = "openai/gpt-oss-20b"
 
     ollama_base_url: str = "http://localhost:11434"
     vision_model: str = "gemma3:4b"
