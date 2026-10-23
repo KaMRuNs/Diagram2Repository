@@ -1,0 +1,28 @@
+{
+  "_comment": "Real qwen2.5vl:3b output for the synthetic test board (Web App -> Orders API -> Postgres/Redis + users/orders tables).",
+  "nodes": [
+    {"id": "web-app", "label": "Web App", "kind": "frontend", "ports": [3000], "tech": "web"},
+    {"id": "orders-api", "label": "Orders API", "kind": "gateway", "ports": [8000], "tech": "rest"},
+    {"id": "postgres", "label": "Postgres", "kind": "database", "ports": [5432], "tech": "postgres"},
+    {"id": "redis", "label": "Redis", "kind": "cache", "ports": [], "tech": "redis"},
+    {"id": "users", "label": "users", "kind": "database", "ports": [], "tech": "mysql"},
+    {"id": "orders", "label": "orders", "kind": "database", "ports": [], "tech": "mysql"}
+  ],
+  "edges": [
+    {"source": "web-app", "target": "orders-api", "label": "REST", "protocol": "http"},
+    {"source": "orders-api", "target": "postgres", "label": null, "protocol": "sql"},
+    {"source": "orders-api", "target": "redis", "label": null, "protocol": "redis"}
+  ],
+  "tables": [
+    {"name": "users", "columns": [
+      {"name": "id", "type": "Int", "pk": true, "fk": null, "nullable": false, "unique": false},
+      {"name": "email", "type": "String", "pk": false, "fk": null, "nullable": true, "unique": false},
+      {"name": "created_at", "type": "DateTime", "pk": false, "fk": null, "nullable": true, "unique": false}
+    ]},
+    {"name": "orders", "columns": [
+      {"name": "id", "type": "Int", "pk": true, "fk": "users.id", "nullable": false, "unique": false},
+      {"name": "user_id", "type": "Int", "pk": false, "fk": null, "nullable": true, "unique": false},
+      {"name": "total", "type": "Decimal", "pk": false, "fk": null, "nullable": true, "unique": false}
+    ]}
+  ]
+}

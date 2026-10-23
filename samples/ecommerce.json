@@ -1,0 +1,61 @@
+{
+  "summary": {
+    "title": "Online Bookstore",
+    "description": "A web storefront talks to an Orders API behind an Nginx gateway. Orders are stored in Postgres, sessions are cached in Redis, and order events go to RabbitMQ for an email worker.",
+    "data_flow": "Browser → Nginx → Orders API → Postgres; Orders API → RabbitMQ → Email Worker → SendGrid",
+    "recommended_stack": {
+      "Storefront": "React + Vite",
+      "Orders API": "Node.js + Express",
+      "Email Worker": "Python",
+      "Database": "PostgreSQL 16",
+      "Cache": "Redis 7",
+      "Queue": "RabbitMQ 3"
+    }
+  },
+  "graph": {
+    "nodes": [
+      {"id": "browser", "label": "Browser", "kind": "external", "ports": []},
+      {"id": "storefront", "label": "Storefront (React)", "kind": "frontend", "ports": [3000], "tech": "react"},
+      {"id": "gateway", "label": "Nginx", "kind": "gateway", "ports": [80]},
+      {"id": "orders-api", "label": "Orders API", "kind": "service", "ports": [3000], "tech": "express"},
+      {"id": "orders-db", "label": "Orders DB (Postgres)", "kind": "database", "ports": [5432]},
+      {"id": "cache", "label": "Redis", "kind": "cache", "ports": []},
+      {"id": "queue", "label": "RabbitMQ", "kind": "queue", "ports": [5672]},
+      {"id": "email-worker", "label": "Email Worker", "kind": "service", "ports": [], "tech": "python"},
+      {"id": "sendgrid", "label": "SendGrid", "kind": "external", "ports": []}
+    ],
+    "edges": [
+      {"source": "browser", "target": "gateway", "label": "HTTPS"},
+      {"source": "gateway", "target": "storefront"},
+      {"source": "gateway", "target": "orders-api", "label": "/api"},
+      {"source": "orders-api", "target": "orders-db", "protocol": "sql"},
+      {"source": "orders-api", "target": "cache"},
+      {"source": "orders-api", "target": "queue", "label": "order.created"},
+      {"source": "queue", "target": "email-worker"},
+      {"source": "email-worker", "target": "sendgrid", "label": "SMTP"}
+    ],
+    "tables": [
+      {"name": "users", "columns": [
+        {"name": "id", "type": "uuid", "pk": true},
+        {"name": "email", "type": "varchar", "unique": true, "nullable": false},
+        {"name": "created_at", "type": "timestamp"}
+      ]},
+      {"name": "books", "columns": [
+        {"name": "id", "type": "int", "pk": true},
+        {"name": "title", "type": "text", "nullable": false},
+        {"name": "price", "type": "decimal"}
+      ]},
+      {"name": "orders", "columns": [
+        {"name": "id", "type": "int", "pk": true},
+        {"name": "user_id", "type": "uuid", "fk": "users.id", "nullable": false},
+        {"name": "status", "type": "varchar"},
+        {"name": "created_at", "type": "timestamp"}
+      ]},
+      {"name": "order_items", "columns": [
+        {"name": "order_id", "type": "int", "pk": true, "fk": "orders.id"},
+        {"name": "book_id", "type": "int", "pk": true, "fk": "books(id)"},
+        {"name": "qty", "type": "int"}
+      ]}
+    ]
+  }
+}

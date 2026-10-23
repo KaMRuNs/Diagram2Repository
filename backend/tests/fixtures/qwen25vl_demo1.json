@@ -1,0 +1,27 @@
+{
+  "_comment": "Real qwen2.5vl:3b output for samples/demo1.jpg (handwritten resident-info system on paper).",
+  "nodes": [
+    {"id": "resident-info", "label": "Resident's Info", "kind": "database", "ports": [], "tech": null},
+    {"id": "user-admin", "label": "User Admin", "kind": "frontend", "ports": [], "tech": null},
+    {"id": "user-n", "label": "User n", "kind": "frontend", "ports": [], "tech": null},
+    {"id": "admin-s-interface", "label": "Admin's Interface", "kind": "frontend", "ports": [], "tech": null},
+    {"id": "database", "label": "Database", "kind": "database", "ports": [], "tech": "postgres"},
+    {"id": "web-server", "label": "Web Server", "kind": "service", "ports": [], "tech": null}
+  ],
+  "edges": [
+    {"source": "resident-info", "target": "user-admin", "label": "User Admin", "protocol": "sql"},
+    {"source": "user-admin", "target": "admin-s-interface", "label": "Admin's Interface", "protocol": "sql"},
+    {"source": "user-n", "target": "user-admin", "label": "User Admin", "protocol": "sql"},
+    {"source": "user-admin", "target": "web-server", "label": "Web Server", "protocol": "sql"},
+    {"source": "user-n", "target": "web-server", "label": "Web Server", "protocol": "sql"},
+    {"source": "web-server", "target": "database", "label": "Database", "protocol": "sql"}
+  ],
+  "tables": [
+    {"name": "user_n", "columns": [
+      {"name": "id", "type": "Uuid", "pk": true, "fk": null, "nullable": false, "unique": false},
+      {"name": "name", "type": "String", "pk": false, "fk": null, "nullable": true, "unique": false},
+      {"name": "email", "type": "String", "pk": false, "fk": null, "nullable": true, "unique": false},
+      {"name": "password", "type": "String", "pk": false, "fk": null, "nullable": true, "unique": false}
+    ]}
+  ]
+}

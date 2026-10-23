@@ -1,0 +1,74 @@
+# {{ title }}
+
+{{ description }}
+
+> Scaffolded from a whiteboard photo by **Diagram2Repo**. Each service in `services/` is a small working starter app (health check + the connections it was wired to). Build your features on top of it.
+
+## Architecture
+
+```mermaid
+{{ mermaid }}
+```
+
+**Data flow:** {{ data_flow }}
+
+## Services
+
+| Service | Kind | Tech | Runs as | Local URL |
+|---|---|---|---|---|
+{% for s in services -%}
+| `{{ s.id }}` ({{ s.label }}) | {{ s.kind }} | {{ s.tech }} | {{ s.runs_as }} | {{ s.url }} |
+{% endfor %}
+{%- if externals %}
+
+External systems (not containerised): {{ externals | join(", ") }}
+{%- endif %}
+{%- if stack %}
+
+## Ideas from the vision model
+
+While reading the board, the model suggested these technologies. The generated code uses the stack in the Services table above; treat these as alternatives to consider.
+
+{% for k, v in stack.items() -%}
+- **{{ k }}**: {{ v }}
+{% endfor %}
+{%- endif %}
+
+## Quickstart
+
+Requires Docker with the Compose plugin.
+
+```bash
+cp .env.example .env   # adjust ports and credentials
+make up                # docker compose up -d --build
+make logs              # follow logs
+make down              # stop everything
+```
+{%- if tables %}
+
+## Database
+
+The schema is applied automatically from `db/init.sql` the first time the database container starts (`make reset` wipes it and re-applies).
+
+| Table | Columns |
+|---|---|
+{% for t in tables -%}
+| `{{ t.name }}` | {{ t.columns | join(", ") }} |
+{% endfor %}
+Use Prisma from your app code:
+
+```bash
+npm install prisma @prisma/client
+npx prisma generate      # uses prisma/schema.prisma and DATABASE_URL from .env
+```
+{%- endif %}
+
+## Project structure
+
+```
+{{ tree }}
+```
+
+## License
+
+Released under the {{ license_type }} License. See [LICENSE](LICENSE). Copyright (c) {{ year }} {{ author }}.

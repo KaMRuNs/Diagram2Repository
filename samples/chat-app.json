@@ -1,0 +1,33 @@
+{
+  "summary": {
+    "title": "Realtime Chat",
+    "description": "A chat service where a Go websocket gateway fans messages out through Kafka. A FastAPI history service persists messages to MongoDB and presence is tracked in Redis.",
+    "data_flow": "Mobile App → WS Gateway → Kafka → History Service → MongoDB; WS Gateway → Redis",
+    "recommended_stack": {
+      "WS Gateway": "Go",
+      "History Service": "FastAPI",
+      "Messages": "MongoDB 7",
+      "Presence": "Redis 7",
+      "Event bus": "Apache Kafka"
+    }
+  },
+  "graph": {
+    "nodes": [
+      {"id": "mobile", "label": "Mobile App", "kind": "unknown"},
+      {"id": "ws", "label": "WS Gateway", "kind": "service", "ports": [8080], "tech": "go"},
+      {"id": "history", "label": "History Service", "kind": "service", "ports": [8080], "tech": "fastapi"},
+      {"id": "kafka", "label": "Kafka", "kind": "unknown", "ports": [9092]},
+      {"id": "mongo", "label": "Mongo", "kind": "database"},
+      {"id": "presence", "label": "Presence cache", "kind": "unknown"}
+    ],
+    "edges": [
+      {"source": "mobile", "target": "ws", "label": "websocket"},
+      {"source": "WS Gateway", "target": "kafka", "label": "chat.messages"},
+      {"source": "kafka", "target": "history"},
+      {"source": "history", "target": "mongo"},
+      {"source": "ws", "target": "presence"},
+      {"source": "ws", "target": "ghost-node"}
+    ],
+    "tables": []
+  }
+}
